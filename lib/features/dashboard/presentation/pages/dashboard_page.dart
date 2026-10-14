@@ -15,12 +15,16 @@ class StudentDashboardPage extends StatefulWidget {
     required this.accessToken,
     required this.userName,
     required this.onLogout,
+    required this.isDarkTheme,
+    required this.onThemeChanged,
     super.key,
   });
 
   final String accessToken;
   final String userName;
   final VoidCallback onLogout;
+  final bool isDarkTheme;
+  final ValueChanged<bool> onThemeChanged;
 
   @override
   State<StudentDashboardPage> createState() => _StudentDashboardPageState();
@@ -35,7 +39,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: GlassTheme.primaryDark,
+      backgroundColor: GlassTheme.background(context),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -78,6 +82,8 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                         child: _DashboardHeader(
                           userName: widget.userName,
                           onLogout: widget.onLogout,
+                          isDarkTheme: widget.isDarkTheme,
+                          onThemeChanged: widget.onThemeChanged,
                         ),
                       ),
                     ),
@@ -97,11 +103,13 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       sliver: SliverToBoxAdapter(
                         child: Row(
                           children: [
-                            const Expanded(
+                            Expanded(
                               child: Text(
                                 'Your tasks',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -109,7 +117,11 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                             ),
                             Text(
                               '${pendingTasks.length} remaining',
-                              style: const TextStyle(color: Colors.white54),
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ),
@@ -142,12 +154,16 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       )
                     else ...[
                       if (pendingTasks.isEmpty)
-                        const SliverPadding(
+                        SliverPadding(
                           padding: EdgeInsets.fromLTRB(16, 4, 16, 12),
                           sliver: SliverToBoxAdapter(
                             child: Text(
                               'No pending tasks in this view.',
-                              style: TextStyle(color: Colors.white54),
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
                             ),
                           ),
                         )
@@ -191,17 +207,17 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                         ),
                     ],
                     const SliverPadding(
-                        padding: EdgeInsets.fromLTRB(16, 30, 16, 14),
-                        sliver: SliverToBoxAdapter(
-                          child: _SectionHeading(
-                            title: 'Study tools',
-                            subtitle: 'Build focus and test your knowledge.',
-                          ),
+                      padding: EdgeInsets.fromLTRB(16, 30, 16, 14),
+                      sliver: SliverToBoxAdapter(
+                        child: _SectionHeading(
+                          title: 'Study tools',
+                          subtitle: 'Build focus and test your knowledge.',
                         ),
+                      ),
                     ),
                     _FeatureGrid(
-                        accessToken: widget.accessToken,
-                        onTasksTap: _scrollToTasks,
+                      accessToken: widget.accessToken,
+                      onTasksTap: _scrollToTasks,
                     ),
                     const SliverToBoxAdapter(child: SizedBox(height: 96)),
                   ],
@@ -217,8 +233,8 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
           child: FloatingActionButton.extended(
             onPressed: _showAddTaskSheet,
-            backgroundColor: GlassTheme.cyanAccent.withValues(alpha: 0.82),
-            foregroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
             icon: const Icon(Icons.add),
             label: const Text('Add task'),
           ),
@@ -251,11 +267,20 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   }
 }
 
+enum _DashboardMenuAction { lightTheme, darkTheme, signOut }
+
 class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader({required this.userName, required this.onLogout});
+  const _DashboardHeader({
+    required this.userName,
+    required this.onLogout,
+    required this.isDarkTheme,
+    required this.onThemeChanged,
+  });
 
   final String userName;
   final VoidCallback onLogout;
+  final bool isDarkTheme;
+  final ValueChanged<bool> onThemeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -277,8 +302,8 @@ class _DashboardHeader extends StatelessWidget {
             children: [
               Text(
                 '$greeting,',
-                style: const TextStyle(
-                  color: Colors.white60,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -288,8 +313,8 @@ class _DashboardHeader extends StatelessWidget {
                 firstName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 25,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.4,
@@ -299,7 +324,10 @@ class _DashboardHeader extends StatelessWidget {
               Text(
                 MaterialLocalizations.of(context)
                     .formatMediumDate(DateTime.now()),
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -317,14 +345,66 @@ class _DashboardHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 4),
-        IconButton(
-          tooltip: 'Sign out',
-          onPressed: onLogout,
-          icon: const Icon(Icons.logout_rounded),
-          style: IconButton.styleFrom(
-            foregroundColor: Colors.white70,
-            backgroundColor: Colors.white.withValues(alpha: 0.06),
-          ),
+        PopupMenuButton<_DashboardMenuAction>(
+          tooltip: 'Main menu',
+          onSelected: (action) {
+            switch (action) {
+              case _DashboardMenuAction.lightTheme:
+                onThemeChanged(false);
+              case _DashboardMenuAction.darkTheme:
+                onThemeChanged(true);
+              case _DashboardMenuAction.signOut:
+                onLogout();
+            }
+          },
+          icon: const Icon(Icons.more_vert),
+          itemBuilder: (context) => [
+            PopupMenuItem<_DashboardMenuAction>(
+              value: _DashboardMenuAction.lightTheme,
+              child: Row(
+                children: [
+                  const Icon(Icons.light_mode_outlined),
+                  const SizedBox(width: 10),
+                  const Text('Light theme'),
+                  if (!isDarkTheme) ...[
+                    const Spacer(),
+                    Icon(
+                      Icons.check,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            PopupMenuItem<_DashboardMenuAction>(
+              value: _DashboardMenuAction.darkTheme,
+              child: Row(
+                children: [
+                  const Icon(Icons.dark_mode_outlined),
+                  const SizedBox(width: 10),
+                  const Text('Dark theme'),
+                  if (isDarkTheme) ...[
+                    const Spacer(),
+                    Icon(
+                      Icons.check,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<_DashboardMenuAction>(
+              value: _DashboardMenuAction.signOut,
+              child: Row(
+                children: [
+                  Icon(Icons.logout_rounded),
+                  SizedBox(width: 10),
+                  Text('Sign out'),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -344,8 +424,8 @@ class _SectionHeading extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 19,
             fontWeight: FontWeight.w700,
           ),
@@ -353,7 +433,10 @@ class _SectionHeading extends StatelessWidget {
         const SizedBox(height: 3),
         Text(
           subtitle,
-          style: const TextStyle(color: Colors.white54, fontSize: 12),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 12,
+          ),
         ),
       ],
     );
@@ -374,6 +457,7 @@ class _TaskAnalyticsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassTheme.glassContainer(
+      context: context,
       borderRadius: 18,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       child: Row(
@@ -382,7 +466,7 @@ class _TaskAnalyticsBar extends StatelessWidget {
             child: _AnalyticsMetric(
               label: 'Total',
               value: total,
-              accent: Colors.white,
+              accent: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           _AnalyticsDivider(),
@@ -414,7 +498,7 @@ class _AnalyticsDivider extends StatelessWidget {
       width: 1,
       height: 30,
       margin: const EdgeInsets.symmetric(horizontal: 8),
-      color: Colors.white.withValues(alpha: 0.12),
+      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
     );
   }
 }
@@ -449,7 +533,10 @@ class _AnalyticsMetric extends StatelessWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.white60, fontSize: 11),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 11,
+          ),
         ),
       ],
     );
@@ -483,15 +570,15 @@ class _CompletedTasksHeader extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Completed ($count)',
-                  style: const TextStyle(
-                    color: Colors.white70,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               Icon(
                 expanded ? Icons.expand_less : Icons.expand_more,
-                color: Colors.white60,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ],
           ),
@@ -529,7 +616,7 @@ class _FeatureGrid extends StatelessWidget {
           _FeatureTile(
             icon: Icons.timer_outlined,
             title: 'Pomodoro',
-            subtitle: '25 min focus',
+            subtitle: '15 min focus',
             accent: GlassTheme.cyanAccent,
             compact: true,
             onTap: () => Navigator.push(
@@ -638,6 +725,7 @@ class _FeatureTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: GlassTheme.glassContainer(
+          context: context,
           borderRadius: 20,
           padding: EdgeInsets.all(compact ? 12 : 18),
           child: Column(
@@ -653,7 +741,7 @@ class _FeatureTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: compact ? 14 : 19,
                       fontWeight: FontWeight.bold,
                     ),
@@ -664,7 +752,7 @@ class _FeatureTile extends StatelessWidget {
                     maxLines: compact ? 1 : 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white60,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: compact ? 10 : 12,
                     ),
                   ),
@@ -705,13 +793,18 @@ class _CategoryFilters extends StatelessWidget {
             label: Text(category),
             selected: isSelected,
             onSelected: (_) => onSelected(category),
-            selectedColor: GlassTheme.cyanAccent,
-            backgroundColor: Colors.white.withValues(alpha: 0.08),
+            selectedColor: Theme.of(context).colorScheme.primary,
+            backgroundColor: Theme.of(context).colorScheme.onSurface
+                .withValues(alpha: 0.08),
             side: BorderSide(
-              color: isSelected ? GlassTheme.cyanAccent : Colors.white24,
+              color: isSelected
+                  ? GlassTheme.cyanAccent
+                  : Theme.of(context).colorScheme.outlineVariant,
             ),
             labelStyle: TextStyle(
-              color: isSelected ? Colors.white : Colors.white70,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : Theme.of(context).colorScheme.onSurface,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             ),
             showCheckmark: false,
@@ -778,6 +871,7 @@ class _TaskTile extends StatelessWidget {
           }
         },
         child: GlassTheme.glassContainer(
+          context: context,
           borderRadius: 18,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
@@ -800,7 +894,9 @@ class _TaskTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: task.isCompleted ? Colors.white54 : Colors.white,
+                        color: task.isCompleted
+                            ? Theme.of(context).colorScheme.onSurfaceVariant
+                            : Theme.of(context).colorScheme.onSurface,
                         decoration: task.isCompleted
                             ? TextDecoration.lineThrough
                             : null,
@@ -810,11 +906,24 @@ class _TaskTile extends StatelessWidget {
                     const SizedBox(height: 5),
                     Text(
                       task.category,
-                      style: const TextStyle(
-                        color: Colors.white54,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 12,
                       ),
                     ),
+                    if (task.description.trim().isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        task.description,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
                     if (!task.isCompleted) ...[
                       const SizedBox(height: 8),
                       Container(
@@ -884,16 +993,16 @@ class _TaskLoadError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_outlined,
-              color: Colors.white54,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               size: 34,
             ),
             const SizedBox(height: 12),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
             ),
             const SizedBox(height: 12),
             TextButton.icon(
@@ -936,9 +1045,9 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF182337),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SafeArea(
           top: false,
@@ -961,10 +1070,10 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const Text(
+                  Text(
                     'Add a task',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
@@ -993,7 +1102,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                         child: DropdownButtonFormField<String>(
                           initialValue: _category,
                           decoration: _inputDecoration('Category'),
-                          dropdownColor: const Color(0xFF182337),
+                          dropdownColor: Theme.of(context).colorScheme.surface,
                           items: const ['Homework', 'Exams', 'Projects']
                               .map(
                                 (value) => DropdownMenuItem(
@@ -1011,7 +1120,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                         child: DropdownButtonFormField<String>(
                           initialValue: _priority,
                           decoration: _inputDecoration('Priority'),
-                          dropdownColor: const Color(0xFF182337),
+                          dropdownColor: Theme.of(context).colorScheme.surface,
                           items: const ['High', 'Medium', 'Low']
                               .map(
                                 (value) => DropdownMenuItem(
@@ -1044,7 +1153,10 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                       icon: const Icon(Icons.add),
                       label: const Text('Create task'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: GlassTheme.cyanAccent,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(context)
+                            .colorScheme
+                            .onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
@@ -1060,9 +1172,11 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
 
   InputDecoration _inputDecoration(String label) => InputDecoration(
     labelText: label,
-    labelStyle: const TextStyle(color: Colors.white60),
+    labelStyle: TextStyle(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
     filled: true,
-    fillColor: Colors.white.withValues(alpha: 0.06),
+    fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
       borderSide: BorderSide.none,
@@ -1076,7 +1190,10 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
       builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(colorScheme: const ColorScheme.dark()),
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context).colorScheme
+              .copyWith(primary: GlassTheme.cyanAccent),
+        ),
         child: child!,
       ),
     );

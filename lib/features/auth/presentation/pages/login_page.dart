@@ -43,7 +43,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: GlassTheme.primaryDark,
+      backgroundColor: GlassTheme.background(context),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -51,6 +51,7 @@ class _LoginPageState extends State<LoginPage> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: GlassTheme.glassContainer(
+                context: context,
                 borderRadius: 24,
                 padding: const EdgeInsets.all(24),
                 child: Form(
@@ -80,8 +81,8 @@ class _LoginPageState extends State<LoginPage> {
                             : _isRegistering
                             ? 'Create your account'
                             : 'Welcome back',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 27,
                           fontWeight: FontWeight.bold,
                         ),
@@ -93,7 +94,9 @@ class _LoginPageState extends State<LoginPage> {
                             : _isRegistering
                             ? 'Start organizing your study time.'
                             : 'Sign in to continue to your study space.',
-                        style: const TextStyle(color: Colors.white60),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 26),
                       if (_isRegistering && !_isForgotPassword) ...[
@@ -134,45 +137,50 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       if (!_isForgotPassword) const SizedBox(height: 14),
                       if (!_isForgotPassword)
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        textInputAction: _isRegistering
-                            ? TextInputAction.next
-                            : TextInputAction.done,
-                        onFieldSubmitted: (_) =>
-                            _isRegistering ? null : _submit(),
-                        decoration: _decoration('Password', Icons.lock_outline)
-                            .copyWith(
-                              suffixIcon: IconButton(
-                                tooltip: _obscurePassword
-                                    ? 'Show password'
-                                    : 'Hide password',
-                                onPressed: () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                ),
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                  color: Colors.white54,
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          textInputAction: _isRegistering
+                              ? TextInputAction.next
+                              : TextInputAction.done,
+                          onFieldSubmitted: (_) =>
+                              _isRegistering ? null : _submit(),
+                          decoration:
+                              _decoration(
+                                'Password',
+                                Icons.lock_outline,
+                              ).copyWith(
+                                suffixIcon: IconButton(
+                                  tooltip: _obscurePassword
+                                      ? 'Show password'
+                                      : 'Hide password',
+                                  onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
                                 ),
                               ),
-                            ),
-                        validator: (value) {
-                          final password = value ?? '';
-                          if (password.isEmpty) return 'Enter your password';
-                          if (_isRegistering && password.length < 12) {
-                            return 'Use at least 12 characters';
-                          }
-                          if (password.length > 72) {
-                            return 'Password is too long';
-                          }
-                          return null;
-                        },
-                      ),
+                          validator: (value) {
+                            final password = value ?? '';
+                            if (password.isEmpty) return 'Enter your password';
+                            if (_isRegistering && password.length < 12) {
+                              return 'Use at least 12 characters';
+                            }
+                            if (password.length > 72) {
+                              return 'Password is too long';
+                            }
+                            return null;
+                          },
+                        ),
                       if (_isRegistering && !_isForgotPassword) ...[
                         const SizedBox(height: 14),
                         TextFormField(
@@ -252,8 +260,12 @@ class _LoginPageState extends State<LoginPage> {
                         child: FilledButton(
                           onPressed: _isSubmitting ? null : _submit,
                           style: FilledButton.styleFrom(
-                            backgroundColor: GlassTheme.cyanAccent,
-                            foregroundColor: Colors.white,
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .primary,
+                            foregroundColor: Theme.of(context)
+                                .colorScheme
+                                .onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(13),
                             ),
@@ -299,7 +311,9 @@ class _LoginPageState extends State<LoginPage> {
                               : _isRegistering
                               ? 'Already have an account? Sign in'
                               : 'New here? Create an account',
-                          style: const TextStyle(color: Colors.white70),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
                       ),
                     ],
@@ -315,17 +329,26 @@ class _LoginPageState extends State<LoginPage> {
 
   InputDecoration _decoration(String label, IconData icon) => InputDecoration(
     labelText: label,
-    labelStyle: const TextStyle(color: Colors.white60),
-    prefixIcon: Icon(icon, color: Colors.white54),
+    labelStyle: TextStyle(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
+    prefixIcon: Icon(
+      icon,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
     filled: true,
-    fillColor: Colors.white.withValues(alpha: 0.045),
+    fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.045),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(13),
-      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+      borderSide: BorderSide(
+        color: Theme.of(context).colorScheme.outlineVariant,
+      ),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(13),
-      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+      borderSide: BorderSide(
+        color: Theme.of(context).colorScheme.outlineVariant,
+      ),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(13),

@@ -20,15 +20,19 @@ void main() {
   ) async {
     final taskBloc = TaskBloc();
     addTearDown(taskBloc.close);
+    var selectedDarkTheme = false;
+    var didLogOut = false;
 
     await tester.pumpWidget(
       MaterialApp(
         home: BlocProvider.value(
           value: taskBloc,
-          child: const StudentDashboardPage(
+          child: StudentDashboardPage(
             accessToken: 'test-token',
             userName: 'Sam Student',
-            onLogout: _doNothing,
+            onLogout: () => didLogOut = true,
+            isDarkTheme: false,
+            onThemeChanged: (isDark) => selectedDarkTheme = isDark,
           ),
         ),
       ),
@@ -38,7 +42,21 @@ void main() {
     expect(find.text('Your plan is clear'), findsNothing);
     expect(find.text('Your tasks'), findsOneWidget);
     expect(find.text('No pending tasks in this view.'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Main menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dark theme'));
+    await tester.pumpAndSettle();
+
+    expect(selectedDarkTheme, isTrue);
+
+    await tester.tap(find.byTooltip('Main menu'));
+    await tester.pumpAndSettle();
+    expect(find.text('Light theme'), findsOneWidget);
+    expect(find.text('Dark theme'), findsOneWidget);
+    expect(find.text('Sign out'), findsOneWidget);
+    await tester.tap(find.text('Sign out'));
+    await tester.pumpAndSettle();
+    expect(didLogOut, isTrue);
   });
 }
-
-void _doNothing() {}

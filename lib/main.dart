@@ -22,6 +22,7 @@ class StudentAssistantApp extends StatefulWidget {
 class _StudentAssistantAppState extends State<StudentAssistantApp> {
   final _authApi = AuthApi();
   AuthSession? _session;
+  ThemeMode _themeMode = ThemeMode.dark;
 
   @override
   void dispose() {
@@ -34,24 +35,9 @@ class _StudentAssistantAppState extends State<StudentAssistantApp> {
     final session = _session;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: GlassTheme.cyanAccent,
-          brightness: Brightness.dark,
-        ).copyWith(
-          primary: GlassTheme.cyanAccent,
-          secondary: GlassTheme.accentNeon,
-          surface: const Color(0xFF142033),
-        ),
-        scaffoldBackgroundColor: GlassTheme.primaryDark,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: GlassTheme.primaryDark,
-          foregroundColor: Colors.white,
-          surfaceTintColor: Colors.transparent,
-        ),
-      ),
+      themeMode: _themeMode,
+      theme: _buildTheme(Brightness.light),
+      darkTheme: _buildTheme(Brightness.dark),
       home: session == null
           ? LoginPage(authApi: _authApi, onAuthenticated: _onAuthenticated)
           : MultiBlocProvider(
@@ -66,9 +52,44 @@ class _StudentAssistantAppState extends State<StudentAssistantApp> {
                 accessToken: session.accessToken,
                 userName: session.user.name,
                 onLogout: _signOut,
+                isDarkTheme: _themeMode == ThemeMode.dark,
+                onThemeChanged: _setTheme,
               ),
             ),
     );
+  }
+
+  ThemeData _buildTheme(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: GlassTheme.cyanAccent,
+      brightness: brightness,
+    ).copyWith(
+      primary: isDark ? GlassTheme.cyanAccent : const Color(0xFF087F73),
+      secondary: GlassTheme.accentNeon,
+      surface: isDark ? const Color(0xFF142033) : Colors.white,
+    );
+    return ThemeData(
+      useMaterial3: true,
+      brightness: brightness,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: isDark
+          ? GlassTheme.primaryDark
+          : const Color(0xFFF4F7FB),
+      appBarTheme: AppBarTheme(
+        backgroundColor: isDark ? GlassTheme.primaryDark : Colors.white,
+        foregroundColor: colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+        hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+      ),
+    );
+  }
+
+  void _setTheme(bool isDark) {
+    setState(() => _themeMode = isDark ? ThemeMode.dark : ThemeMode.light);
   }
 
   void _onAuthenticated(AuthSession session) {

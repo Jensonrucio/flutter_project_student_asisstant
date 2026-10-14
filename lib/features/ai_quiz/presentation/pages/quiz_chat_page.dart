@@ -195,30 +195,34 @@ class _QuizChatPageState extends State<QuizChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: GlassTheme.primaryDark,
+      backgroundColor: GlassTheme.background(context),
       appBar: AppBar(
-        title: const Text('Study Buddy', style: TextStyle(color: Colors.white)),
+        title: const Text('Study Buddy'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
-          const Text(
+          Text(
             'Learn from your own notes',
             style: TextStyle(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 23,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Upload or paste your study notes. Gemini will create a quiz using only that material.',
-            style: TextStyle(color: Colors.white70, height: 1.4),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 18),
           GlassTheme.glassContainer(
+            context: context,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -252,7 +256,9 @@ class _QuizChatPageState extends State<QuizChatPage> {
                           _selectedFileName!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white70),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
                       ),
                       IconButton(
@@ -268,9 +274,9 @@ class _QuizChatPageState extends State<QuizChatPage> {
                                   _quizSubmitted = false;
                                 });
                               },
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close,
-                          color: Colors.white60,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           size: 20,
                         ),
                       ),
@@ -284,22 +290,27 @@ class _QuizChatPageState extends State<QuizChatPage> {
                   maxLines: 9,
                   maxLength: _maxNotesLength,
                   enabled: !_isLoadingFile && !_isGeneratingQuiz,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Or paste your notes here...',
-                    hintStyle: const TextStyle(color: Colors.white54),
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                     filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.04),
+                    fillColor: Theme.of(context).colorScheme.onSurface
+                        .withValues(alpha: 0.04),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.12),
+                        color: Theme.of(context).colorScheme.outlineVariant,
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.12),
+                        color: Theme.of(context).colorScheme.outlineVariant,
                       ),
                     ),
                   ),
@@ -307,19 +318,21 @@ class _QuizChatPageState extends State<QuizChatPage> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Number of questions',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                     DropdownButton<int>(
                       value: _questionCount,
-                      dropdownColor: GlassTheme.primaryDark,
-                      style: const TextStyle(color: Colors.white),
+                      dropdownColor: Theme.of(context).colorScheme.surface,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                       underline: Container(
                         height: 1,
                         color: GlassTheme.cyanAccent,
@@ -356,16 +369,19 @@ class _QuizChatPageState extends State<QuizChatPage> {
                     icon: const Icon(Icons.auto_awesome),
                     label: const Text('Generate quiz from my notes'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: GlassTheme.accentNeon,
-                      foregroundColor: Colors.white,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       minimumSize: const Size.fromHeight(50),
                     ),
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
+                Text(
                   'Your notes are sent to Gemini only when you generate a quiz.',
-                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -379,15 +395,15 @@ class _QuizChatPageState extends State<QuizChatPage> {
                   ? 'Reading your notes...'
                   : 'Building your quiz...',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
             ),
           ],
           if (_quizQuestions.isNotEmpty) ...[
             const SizedBox(height: 22),
             Text(
               _quizSubmitted ? 'Quiz review' : 'Your notes quiz',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -401,8 +417,8 @@ class _QuizChatPageState extends State<QuizChatPage> {
               child: ElevatedButton(
                 onPressed: _quizSubmitted ? null : _submitQuiz,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: GlassTheme.accentNeon,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   minimumSize: const Size.fromHeight(50),
                 ),
                 child: Text(
@@ -425,6 +441,7 @@ class _QuizChatPageState extends State<QuizChatPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassTheme.glassContainer(
+        context: context,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -438,8 +455,8 @@ class _QuizChatPageState extends State<QuizChatPage> {
             const SizedBox(height: 6),
             Text(
               question['question'] as String,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -470,7 +487,7 @@ class _QuizChatPageState extends State<QuizChatPage> {
                                   ? Colors.lightGreenAccent
                                   : isWrongSelection
                                   ? Colors.redAccent
-                                  : Colors.white70,
+                                  : Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -513,6 +530,7 @@ class _QuizChatPageState extends State<QuizChatPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassTheme.glassContainer(
+        context: context,
         child: Row(
           children: [
             const Icon(
@@ -527,14 +545,19 @@ class _QuizChatPageState extends State<QuizChatPage> {
                 children: [
                   Text(
                     'Your score: $_score / ${_quizQuestions.length} ($percent%)',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(message, style: const TextStyle(color: Colors.white70)),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
                 ],
               ),
             ),
