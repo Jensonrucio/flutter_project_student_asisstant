@@ -127,7 +127,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
     return Scaffold(
       backgroundColor: GlassTheme.background(context),
       appBar: AppBar(
-        title: const Text('Focus Buddy Timer'),
+        title: const Text('Streak Buddy'),
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(

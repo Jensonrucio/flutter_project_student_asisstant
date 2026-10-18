@@ -33,7 +33,7 @@ class StudentDashboardPage extends StatefulWidget {
 
 class _StudentDashboardPageState extends State<StudentDashboardPage> {
   static const _categories = ['All', 'Homework', 'Exams', 'Projects'];
-  static const _dueDateFilters = ['Any date', 'Today', 'Next 7 days', 'Later'];
+  static const _dueDateFilters = ['Any date', 'Today', 'Tomorrow', 'Later'];
   static const _priorities = ['Any priority', 'High', 'Medium', 'Low'];
   final _tasksKey = GlobalKey();
   String _selectedCategory = 'All';
@@ -56,6 +56,11 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     : const <TaskModel>[];
                 final now = DateTime.now();
                 final today = DateTime(now.year, now.month, now.day);
+                final urgentTaskCount = tasks.where((task) {
+                  final daysUntilDue = _daysUntilDate(task.dueDate, today);
+                  return !task.isCompleted &&
+                      (daysUntilDue == 0 || daysUntilDue == 1);
+                }).length;
                 final filteredTasks = tasks.where((task) {
                   final matchesCategory =
                       _selectedCategory == 'All' ||
@@ -70,15 +75,10 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     task.dueDate.month,
                     task.dueDate.day,
                   );
-                  final daysUntilDue =
-                      DateTime.utc(dueDay.year, dueDay.month, dueDay.day)
-                          .difference(
-                            DateTime.utc(today.year, today.month, today.day),
-                          )
-                          .inDays;
+                  final daysUntilDue = _daysUntilDate(dueDay, today);
                   final matchesDueDate = switch (_selectedDueDateFilter) {
                     'Today' => daysUntilDue == 0,
-                    'Next 7 days' => daysUntilDue > 0 && daysUntilDue <= 7,
+                    'Tomorrow' => daysUntilDue == 1,
                     'Later' => daysUntilDue > 7,
                     _ => true,
                   };
@@ -94,6 +94,19 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                         (first, second) =>
                             first.dueDate.compareTo(second.dueDate),
                       );
+                final urgentTasks = pendingTasks.where((task) {
+                  return _daysUntilDate(task.dueDate, today) <= 0;
+                }).toList();
+                final dueTomorrowTasks = pendingTasks.where((task) {
+                  return _daysUntilDate(task.dueDate, today) == 1;
+                }).toList();
+                final dueSoonTasks = pendingTasks.where((task) {
+                  final daysUntilDue = _daysUntilDate(task.dueDate, today);
+                  return daysUntilDue >= 2 && daysUntilDue <= 7;
+                }).toList();
+                final laterTasks = pendingTasks.where((task) {
+                  return _daysUntilDate(task.dueDate, today) > 7;
+                }).toList();
                 final completedTasks =
                     filteredTasks.where((task) => task.isCompleted).toList()
                       ..sort(
@@ -123,6 +136,23 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                         ),
                       ),
                     ),
+                    if (urgentTaskCount > 0)
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                        sliver: SliverToBoxAdapter(
+                          child: _DueTomorrowAlert(
+                            count: urgentTaskCount,
+                            onTap: () {
+                              setState(() {
+                                _selectedCategory = 'All';
+                                _selectedDueDateFilter = 'Any date';
+                                _selectedPriority = 'Any priority';
+                              });
+                              _scrollToTasks();
+                            },
+                          ),
+                        ),
+                      ),
                     SliverPadding(
                       key: _tasksKey,
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -187,7 +217,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                       ),
                     ),
                     if (state is TaskLoadingState)
-                      const SliverFillRemaining(
+                      SliverFillRemaining(
                         hasScrollBody: false,
                         child: Center(
                           child: CircularProgressIndicator(
@@ -203,7 +233,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     else ...[
                       if (pendingTasks.isEmpty)
                         SliverPadding(
-                          padding: EdgeInsets.fromLTRB(16, 4, 16, 12),
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                           sliver: SliverToBoxAdapter(
                             child: Text(
                               'No pending tasks in this view.',
@@ -215,19 +245,44 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                             ),
                           ),
                         )
-                      else
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 22),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) => _TaskTile(
-                                task: pendingTasks[index],
-                                index: index,
-                              ),
-                              childCount: pendingTasks.length,
-                            ),
-                          ),
+                      else ...[
+                        ..._buildTaskSection(
+                          context: context,
+                          title: 'Overdue and due today',
+                          subtitle: 'Handle these first',
+                          tasks: urgentTasks,
+                          allTasks: pendingTasks,
+                          color: const Color(0xFFFF5B68),
+                          icon: Icons.priority_high_rounded,
                         ),
+                        ..._buildTaskSection(
+                          context: context,
+                          title: 'Due tomorrow',
+                          subtitle: 'Make these your next priority',
+                          tasks: dueTomorrowTasks,
+                          allTasks: pendingTasks,
+                          color: const Color(0xFFFF7043),
+                          icon: Icons.notifications_active_outlined,
+                        ),
+                        ..._buildTaskSection(
+                          context: context,
+                          title: 'Due soon',
+                          subtitle: 'Due within the next 7 days',
+                          tasks: dueSoonTasks,
+                          allTasks: pendingTasks,
+                          color: const Color(0xFFFFC45C),
+                          icon: Icons.schedule_rounded,
+                        ),
+                        ..._buildTaskSection(
+                          context: context,
+                          title: 'Upcoming',
+                          subtitle: 'More than 7 days away',
+                          tasks: laterTasks,
+                          allTasks: pendingTasks,
+                          color: const Color(0xFF70D9C0),
+                          icon: Icons.event_available_outlined,
+                        ),
+                      ],
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                         sliver: SliverToBoxAdapter(
@@ -663,7 +718,7 @@ class _FeatureGrid extends StatelessWidget {
           ),
           _FeatureTile(
             icon: Icons.timer_outlined,
-            title: 'StreakBuddy',
+            title: 'Streak Buddy',
             subtitle: '15 min focus',
             accent: GlassTheme.cyanAccent,
             compact: true,
@@ -882,6 +937,164 @@ class _TaskFilterChips extends StatelessWidget {
   }
 }
 
+List<Widget> _buildTaskSection({
+  required BuildContext context,
+  required String title,
+  required String subtitle,
+  required List<TaskModel> tasks,
+  required List<TaskModel> allTasks,
+  required Color color,
+  required IconData icon,
+}) {
+  if (tasks.isEmpty) return const [];
+
+  return [
+    SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      sliver: SliverToBoxAdapter(
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${tasks.length}',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+    SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => _TaskTile(
+            task: tasks[index],
+            index: allTasks.indexOf(tasks[index]),
+          ),
+          childCount: tasks.length,
+        ),
+      ),
+    ),
+  ];
+}
+
+class _DueTomorrowAlert extends StatelessWidget {
+  const _DueTomorrowAlert({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final alertColor = Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFFF9A76)
+        : const Color(0xFFB94324);
+    return Container(
+      decoration: BoxDecoration(
+        color: alertColor.withValues(alpha: 0.11),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: alertColor.withValues(alpha: 0.38)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: alertColor.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.notifications_active_rounded,
+                    color: alertColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'PRIORITY TASK',
+                        style: TextStyle(
+                          color: alertColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.7,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '$count ${count == 1 ? 'task' : 'tasks'} need attention. Tap to review.',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.arrow_forward_rounded, color: alertColor, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+int _daysUntilDate(DateTime date, DateTime today) {
+  return DateTime.utc(
+    date.year,
+    date.month,
+    date.day,
+  ).difference(DateTime.utc(today.year, today.month, today.day)).inDays;
+}
+
 class _TaskTile extends StatelessWidget {
   const _TaskTile({required this.task, required this.index});
 
@@ -902,7 +1115,7 @@ class _TaskTile extends StatelessWidget {
       task.dueDate.month,
       task.dueDate.day,
     );
-    final daysUntilDue = dueDay.difference(today).inDays;
+    final daysUntilDue = _daysUntilDate(dueDay, today);
     final dueLabel = switch (daysUntilDue) {
       < 0 => 'Overdue',
       0 => 'Due Today',
@@ -911,9 +1124,15 @@ class _TaskTile extends StatelessWidget {
     };
     final dueColor = daysUntilDue <= 0
         ? const Color(0xFFFF7A86)
+        : daysUntilDue == 1
+        ? const Color(0xFFFF7043)
         : daysUntilDue <= 2
         ? const Color(0xFFFFC45C)
         : const Color(0xFF70D9C0);
+    final isDueTomorrow = daysUntilDue == 1 && !task.isCompleted;
+    final isDueSoon =
+        daysUntilDue >= 2 && daysUntilDue <= 7 && !task.isCompleted;
+    final isTimeSensitive = isDueTomorrow || isDueSoon;
     final taskKey = ValueKey(task.id ?? '${task.title}-$index');
 
     return Padding(
@@ -946,6 +1165,16 @@ class _TaskTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
               children: [
+                if (isTimeSensitive)
+                  Container(
+                    width: 4,
+                    height: 52,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: dueColor,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
                 Checkbox(
                   value: task.isCompleted,
                   activeColor: GlassTheme.cyanAccent,
@@ -1010,15 +1239,35 @@ class _TaskTile extends StatelessWidget {
                               color: dueColor.withValues(alpha: 0.35),
                             ),
                           ),
-                          child: Text(
-                            dueLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: dueColor,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isTimeSensitive) ...[
+                                Icon(
+                                  isDueTomorrow
+                                      ? Icons.notifications_active_outlined
+                                      : Icons.schedule_rounded,
+                                  size: 13,
+                                  color: dueColor,
+                                ),
+                                const SizedBox(width: 4),
+                              ],
+                              Text(
+                                isDueTomorrow
+                                    ? 'DUE TOMORROW'
+                                    : isDueSoon
+                                    ? 'DUE IN $daysUntilDue DAYS'
+                                    : dueLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: dueColor,
+                                  fontSize: isTimeSensitive ? 11 : 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: isTimeSensitive ? 0.25 : 0,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -1396,7 +1645,8 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                       width: 38,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white30,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.35),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),

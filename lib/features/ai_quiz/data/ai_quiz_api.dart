@@ -47,7 +47,7 @@ class AiQuizApi {
               'question_count': questionCount,
             }),
           )
-          .timeout(const Duration(seconds: 90));
+          .timeout(const Duration(seconds: 135));
     } on TimeoutException {
       throw const AiQuizApiException(
         'Gemini took too long to generate the quiz. Please try again.',
@@ -66,12 +66,15 @@ class AiQuizApi {
         'The AI quiz service returned an invalid response.',
       );
     }
-
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final message = body['error'];
-      throw AiQuizApiException(
-        message is String ? message : 'Gemini could not generate this quiz.',
-      );
+      if (message is String) throw AiQuizApiException(message);
+      if (response.statusCode == 504) {
+        throw const AiQuizApiException(
+          'Gemini took too long to generate the quiz. Try fewer questions or shorter notes.',
+        );
+      }
+      throw const AiQuizApiException('Gemini could not generate this quiz.');
     }
 
     if (body['provider'] != 'gemini') {

@@ -74,6 +74,35 @@ void main() {
     client.close();
   });
 
+  test('AI quiz API shows Gemini timeout errors from the backend', () async {
+    const errorMessage =
+        'Gemini took too long to generate the quiz. Try fewer questions or shorter notes.';
+    final client = MockClient(
+      (_) async => http.Response(
+        json.encode({'error': errorMessage}),
+        504,
+        headers: {'content-type': 'application/json'},
+      ),
+    );
+    final api = AiQuizApi(client: client);
+
+    await expectLater(
+      api.generateQuiz(
+        notes: 'Biology notes',
+        accessToken: 'session-token',
+        questionCount: 5,
+      ),
+      throwsA(
+        isA<AiQuizApiException>().having(
+          (error) => error.message,
+          'message',
+          errorMessage,
+        ),
+      ),
+    );
+    client.close();
+  });
+
   test('AI quiz API rejects responses from any non-Gemini provider', () async {
     final client = MockClient(
       (_) async => http.Response(

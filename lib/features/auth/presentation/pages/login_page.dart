@@ -42,6 +42,11 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accentColor = isDark
+        ? GlassTheme.cyanAccent
+        : const Color(0xFF087F73);
+
     return Scaffold(
       backgroundColor: GlassTheme.background(context),
       body: SafeArea(
@@ -65,12 +70,12 @@ class _LoginPageState extends State<LoginPage> {
                         height: 54,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: GlassTheme.cyanAccent.withValues(alpha: 0.16),
+                          color: accentColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.school_outlined,
-                          color: GlassTheme.cyanAccent,
+                          color: accentColor,
                           size: 30,
                         ),
                       ),
@@ -96,6 +101,7 @@ class _LoginPageState extends State<LoginPage> {
                             : 'Sign in to continue to your study space.',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          height: 1.45,
                         ),
                       ),
                       const SizedBox(height: 26),
@@ -210,9 +216,9 @@ class _LoginPageState extends State<LoginPage> {
                                     _infoMessage = null;
                                     _formKey.currentState?.reset();
                                   }),
-                            child: const Text(
+                            child: Text(
                               'Forgot password?',
-                              style: TextStyle(color: GlassTheme.cyanAccent),
+                              style: TextStyle(color: accentColor),
                             ),
                           ),
                         ),
@@ -221,17 +227,25 @@ class _LoginPageState extends State<LoginPage> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF5B68)
-                                .withValues(alpha: 0.12),
+                            color: isDark
+                                ? const Color(0xFFFF5B68)
+                                      .withValues(alpha: 0.12)
+                                : const Color(0xFFFEF2F2),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFFFF5B68)
-                                  .withValues(alpha: 0.4),
+                              color: isDark
+                                  ? const Color(0xFFFF5B68)
+                                        .withValues(alpha: 0.4)
+                                  : const Color(0xFFFECACA),
                             ),
                           ),
                           child: Text(
                             _errorMessage!,
-                            style: const TextStyle(color: Color(0xFFFFB7BD)),
+                            style: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFFFFB7BD)
+                                  : const Color(0xFF991B1B),
+                            ),
                           ),
                         ),
                       ],
@@ -240,17 +254,25 @@ class _LoginPageState extends State<LoginPage> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: GlassTheme.cyanAccent.withValues(alpha: 0.1),
+                            color: isDark
+                                ? GlassTheme.cyanAccent.withValues(alpha: 0.1)
+                                : const Color(0xFFECFDF5),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: GlassTheme.cyanAccent.withValues(
-                                alpha: 0.35,
-                              ),
+                              color: isDark
+                                  ? GlassTheme.cyanAccent.withValues(
+                                      alpha: 0.35,
+                                    )
+                                  : const Color(0xFFA7F3D0),
                             ),
                           ),
                           child: Text(
                             _infoMessage!,
-                            style: const TextStyle(color: Color(0xFF9DF0E5)),
+                            style: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFF9DF0E5)
+                                  : const Color(0xFF065F46),
+                            ),
                           ),
                         ),
                       ],
@@ -271,10 +293,10 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           child: _isSubmitting
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 21,
                                   height: 21,
-                                  child: CircularProgressIndicator(
+                                  child: const CircularProgressIndicator(
                                     strokeWidth: 2,
                                     color: Colors.white,
                                   ),
@@ -309,8 +331,8 @@ class _LoginPageState extends State<LoginPage> {
                           _isForgotPassword
                               ? 'Back to sign in'
                               : _isRegistering
-                              ? 'Already have an account? Sign in'
-                              : 'New here? Create an account',
+                              ? 'Sign in'
+                              : 'Create an account',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
@@ -337,22 +359,33 @@ class _LoginPageState extends State<LoginPage> {
       color: Theme.of(context).colorScheme.onSurfaceVariant,
     ),
     filled: true,
-    fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.045),
+    fillColor: Theme.of(context).brightness == Brightness.dark
+        ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.045)
+        : const Color(0xFFF7F9FC),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(13),
       borderSide: BorderSide(
-        color: Theme.of(context).colorScheme.outlineVariant,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.outlineVariant
+            : const Color(0xFFCBD5E1),
       ),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(13),
       borderSide: BorderSide(
-        color: Theme.of(context).colorScheme.outlineVariant,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.outlineVariant
+            : const Color(0xFFCBD5E1),
       ),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(13),
-      borderSide: const BorderSide(color: GlassTheme.cyanAccent),
+      borderSide: BorderSide(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? GlassTheme.cyanAccent
+            : const Color(0xFF087F73),
+        width: 1.6,
+      ),
     ),
   );
 

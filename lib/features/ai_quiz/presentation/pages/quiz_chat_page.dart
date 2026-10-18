@@ -22,6 +22,7 @@ class QuizChatPage extends StatefulWidget {
 class _QuizChatPageState extends State<QuizChatPage> {
   static const int _maxNotesLength = 12000;
   static const int _maxFileBytes = 10 * 1024 * 1024;
+  static const int _passingScorePercent = 60;
   static const List<int> _questionCountOptions = [5, 10, 15, 20];
 
   final TextEditingController _notesController = TextEditingController();
@@ -35,6 +36,10 @@ class _QuizChatPageState extends State<QuizChatPage> {
   final Map<int, int> _selectedAnswers = {};
   bool _quizSubmitted = false;
   int _score = 0;
+
+  bool get _hasPassed =>
+      _quizQuestions.isNotEmpty &&
+      _score * 100 >= _quizQuestions.length * _passingScorePercent;
 
   Future<void> _pickNotes() async {
     try {
@@ -84,6 +89,7 @@ class _QuizChatPageState extends State<QuizChatPage> {
         _quizQuestions = [];
         _selectedAnswers.clear();
         _quizSubmitted = false;
+        _score = 0;
       });
     } on FormatException catch (error) {
       if (mounted) _showMessage(error.message.toString());
@@ -118,6 +124,7 @@ class _QuizChatPageState extends State<QuizChatPage> {
       _quizQuestions = [];
       _selectedAnswers.clear();
       _quizSubmitted = false;
+      _score = 0;
     });
 
     try {
@@ -183,6 +190,20 @@ class _QuizChatPageState extends State<QuizChatPage> {
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _completeQuiz() {
+    if (!_quizSubmitted || !_hasPassed) return;
+    Navigator.of(context).pop();
+  }
+
+  void _retryQuiz() {
+    if (!_quizSubmitted || _hasPassed) return;
+    setState(() {
+      _selectedAnswers.clear();
+      _quizSubmitted = false;
+      _score = 0;
+    });
   }
 
   @override
@@ -272,6 +293,7 @@ class _QuizChatPageState extends State<QuizChatPage> {
                                   _quizQuestions = [];
                                   _selectedAnswers.clear();
                                   _quizSubmitted = false;
+                                  _score = 0;
                                 });
                               },
                         icon: Icon(
@@ -354,6 +376,7 @@ class _QuizChatPageState extends State<QuizChatPage> {
                                 _quizQuestions = [];
                                 _selectedAnswers.clear();
                                 _quizSubmitted = false;
+                                _score = 0;
                               });
                             },
                     ),
@@ -415,17 +438,43 @@ class _QuizChatPageState extends State<QuizChatPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _quizSubmitted ? null : _submitQuiz,
+                onPressed: !_quizSubmitted
+                    ? _submitQuiz
+                    : _hasPassed
+                    ? _completeQuiz
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   minimumSize: const Size.fromHeight(50),
                 ),
                 child: Text(
-                  _quizSubmitted ? 'Quiz complete' : 'Reveal my score',
+                  !_quizSubmitted
+                      ? 'Reveal my score'
+                      : _hasPassed
+                      ? 'Quiz complete'
+                      : 'Passing score required',
                 ),
               ),
             ),
+            if (_quizSubmitted && !_hasPassed) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _retryQuiz,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Try quiz again'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ],
       ),
@@ -506,7 +555,7 @@ class _QuizChatPageState extends State<QuizChatPage> {
                       ],
                     ),
                     value: optionIndex,
-                    activeColor: GlassTheme.cyanAccent,
+                    activeColor: Theme.of(context).colorScheme.primary,
                     selected: selectedIndex == optionIndex,
                     enabled: !_quizSubmitted,
                     contentPadding: EdgeInsets.zero,
@@ -524,16 +573,17 @@ class _QuizChatPageState extends State<QuizChatPage> {
     final percent = (_score * 100 / _quizQuestions.length).round();
     final message = percent == 100
         ? 'Excellent work!'
-        : percent >= 60
-        ? 'Nice progress. Keep it up!'
-        : 'Review your notes and try again.';
+        : _hasPassed
+        ? 'You passed! Complete the quiz to finish.'
+        : 'Review your notes and try again. A score of '
+              '$_passingScorePercent% is needed to pass.';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassTheme.glassContainer(
         context: context,
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.emoji_events_outlined,
               color: GlassTheme.cyanAccent,
               size: 32,

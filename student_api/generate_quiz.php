@@ -115,16 +115,32 @@ curl_setopt_array($curl, [
   ],
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_CONNECTTIMEOUT => 10,
-  CURLOPT_TIMEOUT => 75,
+  CURLOPT_TIMEOUT => 120,
 ]);
 $upstreamBody = curl_exec($curl);
 $curlError = curl_errno($curl);
+$curlErrorMessage = curl_error($curl);
 $upstreamStatus = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
 curl_close($curl);
 
 if ($upstreamBody === false || $curlError !== 0) {
-  error_log('[student_api_generate_quiz] Gemini request failed at transport layer');
-  api_json_response(['error' => 'Could not reach Gemini. Please try again shortly.'], 502);
+  $diagnostic = preg_replace('/[\r\n]+/', ' ', $curlErrorMessage) ?? 'Unknown cURL error';
+  error_log(
+    '[student_api_generate_quiz] Gemini cURL failure (code ' .
+      $curlError .
+      '): ' .
+      substr($diagnostic, 0, 240)
+  );
+  if ($curlError === CURLE_OPERATION_TIMEDOUT) {
+    api_json_response(
+      ['error' => 'Gemini took too long to generate the quiz. Try fewer questions or shorter notes.'],
+      504
+    );
+  }
+  api_json_response(
+    ['error' => 'The server could not connect to Gemini. Check its outbound network or proxy settings.'],
+    502
+  );
 }
 
 $upstream = json_decode($upstreamBody, true);
