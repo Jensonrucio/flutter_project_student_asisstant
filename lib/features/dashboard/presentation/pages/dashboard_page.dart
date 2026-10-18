@@ -36,299 +36,333 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   static const _dueDateFilters = ['Any date', 'Today', 'Tomorrow', 'Later'];
   static const _priorities = ['Any priority', 'High', 'Medium', 'Low'];
   final _tasksKey = GlobalKey();
+  final _pomodoroController = PomodoroTimerController();
   String _selectedCategory = 'All';
   String _selectedDueDateFilter = 'Any date';
   String _selectedPriority = 'Any priority';
   bool _showCompletedTasks = false;
 
   @override
+  void dispose() {
+    _pomodoroController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: GlassTheme.background(context),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920),
-            child: BlocBuilder<TaskBloc, TaskState>(
-              builder: (context, state) {
-                final tasks = state is TaskLoadedState
-                    ? state.tasks
-                    : const <TaskModel>[];
-                final now = DateTime.now();
-                final today = DateTime(now.year, now.month, now.day);
-                final urgentTaskCount = tasks.where((task) {
-                  final daysUntilDue = _daysUntilDate(task.dueDate, today);
-                  return !task.isCompleted &&
-                      (daysUntilDue == 0 || daysUntilDue == 1);
-                }).length;
-                final filteredTasks = tasks.where((task) {
-                  final matchesCategory =
-                      _selectedCategory == 'All' ||
-                      task.category.toLowerCase() ==
-                          _selectedCategory.toLowerCase();
-                  final matchesPriority =
-                      _selectedPriority == 'Any priority' ||
-                      task.priority.toLowerCase() ==
-                          _selectedPriority.toLowerCase();
-                  final dueDay = DateTime(
-                    task.dueDate.year,
-                    task.dueDate.month,
-                    task.dueDate.day,
-                  );
-                  final daysUntilDue = _daysUntilDate(dueDay, today);
-                  final matchesDueDate = switch (_selectedDueDateFilter) {
-                    'Today' => daysUntilDue == 0,
-                    'Tomorrow' => daysUntilDue == 1,
-                    'Later' => daysUntilDue > 7,
-                    _ => true,
-                  };
-                  return matchesCategory && matchesPriority && matchesDueDate;
-                }).toList();
-                final completedTaskCount = tasks
-                    .where((task) => task.isCompleted)
-                    .length;
-                final pendingTaskCount = tasks.length - completedTaskCount;
-                final pendingTasks =
-                    filteredTasks.where((task) => !task.isCompleted).toList()
-                      ..sort(
-                        (first, second) =>
-                            first.dueDate.compareTo(second.dueDate),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 920),
+                child: BlocBuilder<TaskBloc, TaskState>(
+                  builder: (context, state) {
+                    final tasks = state is TaskLoadedState
+                        ? state.tasks
+                        : const <TaskModel>[];
+                    final now = DateTime.now();
+                    final today = DateTime(now.year, now.month, now.day);
+                    final urgentTaskCount = tasks.where((task) {
+                      final daysUntilDue = _daysUntilDate(task.dueDate, today);
+                      return !task.isCompleted &&
+                          (daysUntilDue == 0 || daysUntilDue == 1);
+                    }).length;
+                    final filteredTasks = tasks.where((task) {
+                      final matchesCategory =
+                          _selectedCategory == 'All' ||
+                          task.category.toLowerCase() ==
+                              _selectedCategory.toLowerCase();
+                      final matchesPriority =
+                          _selectedPriority == 'Any priority' ||
+                          task.priority.toLowerCase() ==
+                              _selectedPriority.toLowerCase();
+                      final dueDay = DateTime(
+                        task.dueDate.year,
+                        task.dueDate.month,
+                        task.dueDate.day,
                       );
-                final urgentTasks = pendingTasks.where((task) {
-                  return _daysUntilDate(task.dueDate, today) <= 0;
-                }).toList();
-                final dueTomorrowTasks = pendingTasks.where((task) {
-                  return _daysUntilDate(task.dueDate, today) == 1;
-                }).toList();
-                final dueSoonTasks = pendingTasks.where((task) {
-                  final daysUntilDue = _daysUntilDate(task.dueDate, today);
-                  return daysUntilDue >= 2 && daysUntilDue <= 7;
-                }).toList();
-                final laterTasks = pendingTasks.where((task) {
-                  return _daysUntilDate(task.dueDate, today) > 7;
-                }).toList();
-                final completedTasks =
-                    filteredTasks.where((task) => task.isCompleted).toList()
-                      ..sort(
-                        (first, second) =>
-                            first.dueDate.compareTo(second.dueDate),
-                      );
-                return CustomScrollView(
-                  slivers: [
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 22),
-                      sliver: SliverToBoxAdapter(
-                        child: _DashboardHeader(
-                          userName: widget.userName,
-                          onLogout: widget.onLogout,
-                          isDarkTheme: widget.isDarkTheme,
-                          onThemeChanged: widget.onThemeChanged,
-                        ),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                      sliver: SliverToBoxAdapter(
-                        child: _TaskAnalyticsBar(
-                          total: tasks.length,
-                          completed: completedTaskCount,
-                          pending: pendingTaskCount,
-                        ),
-                      ),
-                    ),
-                    if (urgentTaskCount > 0)
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                        sliver: SliverToBoxAdapter(
-                          child: _DueTomorrowAlert(
-                            count: urgentTaskCount,
-                            onTap: () {
-                              setState(() {
-                                _selectedCategory = 'All';
-                                _selectedDueDateFilter = 'Any date';
-                                _selectedPriority = 'Any priority';
-                              });
-                              _scrollToTasks();
-                            },
+                      final daysUntilDue = _daysUntilDate(dueDay, today);
+                      final matchesDueDate = switch (_selectedDueDateFilter) {
+                        'Today' => daysUntilDue == 0,
+                        'Tomorrow' => daysUntilDue == 1,
+                        'Later' => daysUntilDue > 7,
+                        _ => true,
+                      };
+                      return matchesCategory &&
+                          matchesPriority &&
+                          matchesDueDate;
+                    }).toList();
+                    final completedTaskCount = tasks
+                        .where((task) => task.isCompleted)
+                        .length;
+                    final pendingTaskCount = tasks.length - completedTaskCount;
+                    final pendingTasks =
+                        filteredTasks
+                            .where((task) => !task.isCompleted)
+                            .toList()
+                          ..sort(
+                            (first, second) =>
+                                first.dueDate.compareTo(second.dueDate),
+                          );
+                    final urgentTasks = pendingTasks.where((task) {
+                      return _daysUntilDate(task.dueDate, today) <= 0;
+                    }).toList();
+                    final dueTomorrowTasks = pendingTasks.where((task) {
+                      return _daysUntilDate(task.dueDate, today) == 1;
+                    }).toList();
+                    final dueSoonTasks = pendingTasks.where((task) {
+                      final daysUntilDue = _daysUntilDate(task.dueDate, today);
+                      return daysUntilDue >= 2 && daysUntilDue <= 7;
+                    }).toList();
+                    final laterTasks = pendingTasks.where((task) {
+                      return _daysUntilDate(task.dueDate, today) > 7;
+                    }).toList();
+                    final completedTasks =
+                        filteredTasks.where((task) => task.isCompleted).toList()
+                          ..sort(
+                            (first, second) =>
+                                first.dueDate.compareTo(second.dueDate),
+                          );
+                    return CustomScrollView(
+                      slivers: [
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 22),
+                          sliver: SliverToBoxAdapter(
+                            child: _DashboardHeader(
+                              userName: widget.userName,
+                              onLogout: widget.onLogout,
+                              isDarkTheme: widget.isDarkTheme,
+                              onThemeChanged: widget.onThemeChanged,
+                            ),
                           ),
                         ),
-                      ),
-                    SliverPadding(
-                      key: _tasksKey,
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      sliver: SliverToBoxAdapter(
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Your tasks',
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          sliver: SliverToBoxAdapter(
+                            child: _TaskAnalyticsBar(
+                              total: tasks.length,
+                              completed: completedTaskCount,
+                              pending: pendingTaskCount,
+                            ),
+                          ),
+                        ),
+                        if (urgentTaskCount > 0)
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                            sliver: SliverToBoxAdapter(
+                              child: _DueTomorrowAlert(
+                                count: urgentTaskCount,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedCategory = 'All';
+                                    _selectedDueDateFilter = 'Any date';
+                                    _selectedPriority = 'Any priority';
+                                  });
+                                  _scrollToTasks();
+                                },
+                              ),
+                            ),
+                          ),
+                        SliverPadding(
+                          key: _tasksKey,
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          sliver: SliverToBoxAdapter(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Your tasks',
+                                    style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${pendingTasks.length} remaining',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SliverPadding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          sliver: SliverToBoxAdapter(
+                            child: Column(
+                              children: [
+                                _TaskFilterChips(
+                                  title: 'Category',
+                                  options: _categories,
+                                  selected: _selectedCategory,
+                                  onSelected: (value) =>
+                                      setState(() => _selectedCategory = value),
+                                ),
+                                const SizedBox(height: 8),
+                                _TaskFilterChips(
+                                  title: 'Due date',
+                                  options: _dueDateFilters,
+                                  selected: _selectedDueDateFilter,
+                                  onSelected: (value) => setState(
+                                    () => _selectedDueDateFilter = value,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                _TaskFilterChips(
+                                  title: 'Priority',
+                                  options: _priorities,
+                                  selected: _selectedPriority,
+                                  onSelected: (value) =>
+                                      setState(() => _selectedPriority = value),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (state is TaskLoadingState)
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: GlassTheme.accentNeon,
+                              ),
+                            ),
+                          )
+                        else if (state is TaskErrorState)
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: _TaskLoadError(message: state.message),
+                          )
+                        else ...[
+                          if (pendingTasks.isEmpty)
+                            SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                              sliver: SliverToBoxAdapter(
+                                child: Text(
+                                  'No pending tasks in this view.',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            )
+                          else ...[
+                            ..._buildTaskSection(
+                              context: context,
+                              title: 'Overdue and due today',
+                              subtitle: 'Handle these first',
+                              tasks: urgentTasks,
+                              allTasks: pendingTasks,
+                              color: const Color(0xFFFF5B68),
+                              icon: Icons.priority_high_rounded,
+                            ),
+                            ..._buildTaskSection(
+                              context: context,
+                              title: 'Due tomorrow',
+                              subtitle: 'Make these your next priority',
+                              tasks: dueTomorrowTasks,
+                              allTasks: pendingTasks,
+                              color: const Color(0xFFFF7043),
+                              icon: Icons.notifications_active_outlined,
+                            ),
+                            ..._buildTaskSection(
+                              context: context,
+                              title: 'Due soon',
+                              subtitle: 'Due within the next 7 days',
+                              tasks: dueSoonTasks,
+                              allTasks: pendingTasks,
+                              color: const Color(0xFFFFC45C),
+                              icon: Icons.schedule_rounded,
+                            ),
+                            ..._buildTaskSection(
+                              context: context,
+                              title: 'Upcoming',
+                              subtitle: 'More than 7 days away',
+                              tasks: laterTasks,
+                              allTasks: pendingTasks,
+                              color: const Color(0xFF70D9C0),
+                              icon: Icons.event_available_outlined,
+                            ),
+                          ],
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                            sliver: SliverToBoxAdapter(
+                              child: _CompletedTasksHeader(
+                                count: completedTasks.length,
+                                expanded: _showCompletedTasks,
+                                onTap: () => setState(
+                                  () => _showCompletedTasks =
+                                      !_showCompletedTasks,
                                 ),
                               ),
                             ),
-                            Text(
-                              '${pendingTasks.length} remaining',
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      sliver: SliverToBoxAdapter(
-                        child: Column(
-                          children: [
-                            _TaskFilterChips(
-                              title: 'Category',
-                              options: _categories,
-                              selected: _selectedCategory,
-                              onSelected: (value) =>
-                                  setState(() => _selectedCategory = value),
-                            ),
-                            const SizedBox(height: 8),
-                            _TaskFilterChips(
-                              title: 'Due date',
-                              options: _dueDateFilters,
-                              selected: _selectedDueDateFilter,
-                              onSelected: (value) => setState(
-                                () => _selectedDueDateFilter = value,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _TaskFilterChips(
-                              title: 'Priority',
-                              options: _priorities,
-                              selected: _selectedPriority,
-                              onSelected: (value) =>
-                                  setState(() => _selectedPriority = value),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (state is TaskLoadingState)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: GlassTheme.accentNeon,
                           ),
-                        ),
-                      )
-                    else if (state is TaskErrorState)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: _TaskLoadError(message: state.message),
-                      )
-                    else ...[
-                      if (pendingTasks.isEmpty)
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                          if (_showCompletedTasks && completedTasks.isNotEmpty)
+                            SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) => _TaskTile(
+                                    task: completedTasks[index],
+                                    index: index,
+                                  ),
+                                  childCount: completedTasks.length,
+                                ),
+                              ),
+                            ),
+                        ],
+                        const SliverPadding(
+                          padding: EdgeInsets.fromLTRB(16, 30, 16, 14),
                           sliver: SliverToBoxAdapter(
-                            child: Text(
-                              'No pending tasks in this view.',
-                              style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
+                            child: _SectionHeading(
+                              title: 'Study tools',
+                              subtitle: 'Build focus and test your knowledge.',
                             ),
                           ),
-                        )
-                      else ...[
-                        ..._buildTaskSection(
-                          context: context,
-                          title: 'Overdue and due today',
-                          subtitle: 'Handle these first',
-                          tasks: urgentTasks,
-                          allTasks: pendingTasks,
-                          color: const Color(0xFFFF5B68),
-                          icon: Icons.priority_high_rounded,
                         ),
-                        ..._buildTaskSection(
-                          context: context,
-                          title: 'Due tomorrow',
-                          subtitle: 'Make these your next priority',
-                          tasks: dueTomorrowTasks,
-                          allTasks: pendingTasks,
-                          color: const Color(0xFFFF7043),
-                          icon: Icons.notifications_active_outlined,
+                        _FeatureGrid(
+                          accessToken: widget.accessToken,
+                          onTasksTap: _scrollToTasks,
+                          onPomodoroTap: _openPomodoro,
                         ),
-                        ..._buildTaskSection(
-                          context: context,
-                          title: 'Due soon',
-                          subtitle: 'Due within the next 7 days',
-                          tasks: dueSoonTasks,
-                          allTasks: pendingTasks,
-                          color: const Color(0xFFFFC45C),
-                          icon: Icons.schedule_rounded,
-                        ),
-                        ..._buildTaskSection(
-                          context: context,
-                          title: 'Upcoming',
-                          subtitle: 'More than 7 days away',
-                          tasks: laterTasks,
-                          allTasks: pendingTasks,
-                          color: const Color(0xFF70D9C0),
-                          icon: Icons.event_available_outlined,
-                        ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 96)),
                       ],
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        sliver: SliverToBoxAdapter(
-                          child: _CompletedTasksHeader(
-                            count: completedTasks.length,
-                            expanded: _showCompletedTasks,
-                            onTap: () => setState(
-                              () => _showCompletedTasks = !_showCompletedTasks,
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (_showCompletedTasks && completedTasks.isNotEmpty)
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) => _TaskTile(
-                                task: completedTasks[index],
-                                index: index,
-                              ),
-                              childCount: completedTasks.length,
-                            ),
-                          ),
-                        ),
-                    ],
-                    const SliverPadding(
-                      padding: EdgeInsets.fromLTRB(16, 30, 16, 14),
-                      sliver: SliverToBoxAdapter(
-                        child: _SectionHeading(
-                          title: 'Study tools',
-                          subtitle: 'Build focus and test your knowledge.',
-                        ),
-                      ),
-                    ),
-                    _FeatureGrid(
-                      accessToken: widget.accessToken,
-                      onTasksTap: _scrollToTasks,
-                    ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 96)),
-                  ],
-                );
-              },
+                    );
+                  },
+                ),
+              ),
             ),
           ),
-        ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 88,
+            child: SafeArea(
+              top: false,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 920),
+                  child: _MinimizedPomodoroBanner(
+                    controller: _pomodoroController,
+                    onOpen: _openPomodoro,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: ClipRRect(
         borderRadius: BorderRadius.circular(28),
@@ -344,6 +378,22 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _openPomodoro() async {
+    _pomodoroController.restore();
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => PomodoroPage(
+          controller: _pomodoroController,
+          onMinimize: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
+    if (mounted && _pomodoroController.hasSession) {
+      _pomodoroController.minimize();
+    }
   }
 
   Future<void> _scrollToTasks() async {
@@ -367,6 +417,120 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     if (task != null && mounted) {
       context.read<TaskBloc>().add(CreateTaskEvent(task));
     }
+  }
+}
+
+class _MinimizedPomodoroBanner extends StatelessWidget {
+  const _MinimizedPomodoroBanner({
+    required this.controller,
+    required this.onOpen,
+  });
+
+  final PomodoroTimerController controller;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        if (!controller.hasSession || !controller.isMinimized) {
+          return const SizedBox.shrink();
+        }
+
+        final isAlarmPlaying = controller.isAlarmPlaying;
+        final controlTooltip = isAlarmPlaying
+            ? 'Stop alarm'
+            : controller.isRunning
+            ? 'Pause timer'
+            : 'Resume timer';
+
+        return Container(
+          decoration: GlassTheme.glassBoxDecoration(context, borderRadius: 18),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                Icon(
+                  isAlarmPlaying
+                      ? Icons.alarm_on_rounded
+                      : Icons.timer_outlined,
+                  color: isAlarmPlaying
+                      ? Theme.of(context).colorScheme.error
+                      : GlassTheme.cyanAccent,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: InkWell(
+                    onTap: onOpen,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isAlarmPlaying
+                                ? 'Focus session complete'
+                                : controller.isRunning
+                                ? 'Pomodoro running'
+                                : 'Pomodoro paused',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            controller.timeString,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: controlTooltip,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: isAlarmPlaying
+                      ? controller.stopAlarm
+                      : controller.isRunning
+                      ? controller.pause
+                      : controller.start,
+                  icon: Icon(
+                    isAlarmPlaying
+                        ? Icons.stop_circle_outlined
+                        : controller.isRunning
+                        ? Icons.pause_circle_outline
+                        : Icons.play_circle_outline,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Open Pomodoro timer',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onOpen,
+                  icon: const Icon(Icons.open_in_full),
+                ),
+                IconButton(
+                  tooltip: 'Close Pomodoro timer',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: controller.closeSession,
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -692,9 +856,14 @@ class _CompletedTasksHeader extends StatelessWidget {
 }
 
 class _FeatureGrid extends StatelessWidget {
-  const _FeatureGrid({required this.onTasksTap, required this.accessToken});
+  const _FeatureGrid({
+    required this.onTasksTap,
+    required this.onPomodoroTap,
+    required this.accessToken,
+  });
 
   final VoidCallback onTasksTap;
+  final VoidCallback onPomodoroTap;
   final String accessToken;
 
   @override
@@ -722,10 +891,7 @@ class _FeatureGrid extends StatelessWidget {
             subtitle: '15 min focus',
             accent: GlassTheme.cyanAccent,
             compact: true,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(builder: (_) => const PomodoroPage()),
-            ),
+            onTap: onPomodoroTap,
           ),
           _FeatureTile(
             icon: Icons.check_circle_outline,

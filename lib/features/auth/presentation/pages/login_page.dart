@@ -70,13 +70,17 @@ class _LoginPageState extends State<LoginPage> {
                         height: 54,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.12),
+                          color: const Color.fromARGB(255, 17, 54, 66),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(
-                          Icons.school_outlined,
-                          color: accentColor,
-                          size: 30,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.asset(
+                            'web/icons/SBL.png',
+                            width: 54,
+                            height: 54,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -361,7 +365,7 @@ class _LoginPageState extends State<LoginPage> {
     filled: true,
     fillColor: Theme.of(context).brightness == Brightness.dark
         ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.045)
-        : const Color(0xFFF7F9FC),
+        : const Color.fromARGB(255, 57, 72, 94),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(13),
       borderSide: BorderSide(
@@ -375,7 +379,7 @@ class _LoginPageState extends State<LoginPage> {
       borderSide: BorderSide(
         color: Theme.of(context).brightness == Brightness.dark
             ? Theme.of(context).colorScheme.outlineVariant
-            : const Color(0xFFCBD5E1),
+            : const Color.fromARGB(255, 67, 116, 177),
       ),
     ),
     focusedBorder: OutlineInputBorder(

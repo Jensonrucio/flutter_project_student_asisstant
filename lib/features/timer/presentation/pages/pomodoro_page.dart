@@ -6,103 +6,121 @@ import 'package:percent_indicator/circular_percent_indicator.dart';
 
 import '../../../../core/theme/glass_theme.dart';
 
-class PomodoroPage extends StatefulWidget {
-  const PomodoroPage({super.key});
-
-  @override
-  State<PomodoroPage> createState() => _PomodoroPageState();
-}
-
-class _PomodoroPageState extends State<PomodoroPage> {
+class PomodoroTimerController extends ChangeNotifier {
   static const int _minDurationMinutes = 1;
   static const int _maxDurationMinutes = 180;
   final AudioPlayer _completionPlayer = AudioPlayer();
   int _durationMinutes = 15;
   int _secondsRemaining = 15 * 60;
   Timer? _timer;
+  bool _disposed = false;
   bool _isRunning = false;
   bool _isAlarmPlaying = false;
   bool _soundEnabled = true;
+  bool _isMinimized = false;
+  bool _hasSession = false;
 
   int get _durationSeconds => _durationMinutes * 60;
+  int get durationMinutes => _durationMinutes;
+  int get secondsRemaining => _secondsRemaining;
+  bool get isRunning => _isRunning;
+  bool get isAlarmPlaying => _isAlarmPlaying;
+  bool get soundEnabled => _soundEnabled;
+  bool get isMinimized => _isMinimized;
+  bool get hasSession => _hasSession;
+  bool get canDecreaseDuration =>
+      !_isRunning && _durationMinutes > _minDurationMinutes;
+  bool get canIncreaseDuration =>
+      !_isRunning && _durationMinutes < _maxDurationMinutes;
+  double get progress => _secondsRemaining / _durationSeconds;
+
+  String get timeString {
+    final minutes = (_secondsRemaining ~/ 60).toString().padLeft(2, '0');
+    final seconds = (_secondsRemaining % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
 
   @override
   void dispose() {
+    _disposed = true;
     _timer?.cancel();
     unawaited(_completionPlayer.dispose());
     super.dispose();
   }
 
-  void _startTimer() {
+  void start() {
     if (_secondsRemaining == 0) return;
-    if (_timer != null) {
-      _timer!.cancel();
-    }
-    setState(() => _isRunning = true);
+    _timer?.cancel();
+    _isRunning = true;
+    _hasSession = true;
+    notifyListeners();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        return;
-      }
-
       if (_secondsRemaining <= 1) {
         timer.cancel();
-        setState(() {
-          _secondsRemaining = 0;
-          _isRunning = false;
-        });
+        _secondsRemaining = 0;
+        _isRunning = false;
+        notifyListeners();
         if (_soundEnabled) {
           unawaited(_playCompletionSound());
         }
         return;
       }
 
-      setState(() => _secondsRemaining--);
+      _secondsRemaining--;
+      notifyListeners();
     });
   }
 
   Future<void> _playCompletionSound() async {
-    if (!mounted || !_soundEnabled) return;
+    if (_disposed || !_soundEnabled) return;
 
-    setState(() => _isAlarmPlaying = true);
+    _isAlarmPlaying = true;
+    notifyListeners();
     try {
       await _completionPlayer.setReleaseMode(ReleaseMode.loop);
-      if (!mounted || !_isAlarmPlaying) return;
+      if (_disposed || !_isAlarmPlaying) return;
       await _completionPlayer.play(AssetSource('audio/pomodoro_complete.wav'));
     } on Object catch (error) {
       debugPrint('Unable to play Pomodoro completion sound: $error');
-      if (mounted) {
-        setState(() => _isAlarmPlaying = false);
+      if (!_disposed) {
+        _isAlarmPlaying = false;
+        notifyListeners();
       }
     }
   }
 
-  Future<void> _stopAlarm() async {
-    if (mounted) {
-      setState(() => _isAlarmPlaying = false);
-    }
+  Future<void> stopAlarm() async {
+    _isAlarmPlaying = false;
+    notifyListeners();
     try {
       await _completionPlayer.stop();
     } on Object catch (error) {
       debugPrint('Unable to stop Pomodoro completion sound: $error');
-      if (mounted) {
-        setState(() => _isAlarmPlaying = true);
+      if (!_disposed) {
+        _isAlarmPlaying = true;
+        notifyListeners();
       }
     }
   }
 
-  void _pauseTimer() {
+  void pause() {
     _timer?.cancel();
-    setState(() => _isRunning = false);
+    _isRunning = false;
+    notifyListeners();
   }
 
-  void _resetTimer() {
-    _pauseTimer();
-    unawaited(_stopAlarm());
-    setState(() => _secondsRemaining = _durationSeconds);
+  void reset() {
+    _timer?.cancel();
+    _isRunning = false;
+    _secondsRemaining = _durationSeconds;
+    _hasSession = false;
+    _isMinimized = false;
+    notifyListeners();
+    unawaited(stopAlarm());
   }
 
-  void _changeDuration(int minutes) {
+  void changeDuration(int minutes) {
     final updatedDuration = _durationMinutes + minutes;
     if (_isRunning ||
         updatedDuration < _minDurationMinutes ||
@@ -110,20 +128,56 @@ class _PomodoroPageState extends State<PomodoroPage> {
       return;
     }
 
-    setState(() {
-      _durationMinutes = updatedDuration;
-      _secondsRemaining = _durationSeconds;
-    });
+    _durationMinutes = updatedDuration;
+    _secondsRemaining = _durationSeconds;
+    _hasSession = true;
+    notifyListeners();
   }
 
-  String get _timeString {
-    final minutes = (_secondsRemaining ~/ 60).toString().padLeft(2, '0');
-    final seconds = (_secondsRemaining % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
+  void toggleSound() {
+    _soundEnabled = !_soundEnabled;
+    notifyListeners();
+    if (!_soundEnabled && _isAlarmPlaying) {
+      unawaited(stopAlarm());
+    }
   }
+
+  void minimize() {
+    _isMinimized = true;
+    notifyListeners();
+  }
+
+  void restore() {
+    _isMinimized = false;
+    notifyListeners();
+  }
+
+  void closeSession() {
+    reset();
+  }
+}
+
+class PomodoroPage extends StatelessWidget {
+  const PomodoroPage({
+    required this.controller,
+    required this.onMinimize,
+    super.key,
+  });
+
+  final PomodoroTimerController controller;
+  final VoidCallback onMinimize;
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return _buildPage(context);
+      },
+    );
+  }
+
+  Widget _buildPage(BuildContext context) {
     return Scaffold(
       backgroundColor: GlassTheme.background(context),
       appBar: AppBar(
@@ -131,18 +185,20 @@ class _PomodoroPageState extends State<PomodoroPage> {
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
-            tooltip: _soundEnabled
+            tooltip: 'Minimize timer to dashboard',
+            onPressed: () {
+              controller.minimize();
+              onMinimize();
+            },
+            icon: const Icon(Icons.keyboard_arrow_down),
+          ),
+          IconButton(
+            tooltip: controller.soundEnabled
                 ? 'Mute completion sound'
                 : 'Enable completion sound',
-            onPressed: () {
-              final soundEnabled = !_soundEnabled;
-              setState(() => _soundEnabled = soundEnabled);
-              if (!soundEnabled && _isAlarmPlaying) {
-                unawaited(_stopAlarm());
-              }
-            },
+            onPressed: controller.toggleSound,
             icon: Icon(
-              _soundEnabled
+              controller.soundEnabled
                   ? Icons.volume_up_outlined
                   : Icons.volume_off_outlined,
             ),
@@ -169,16 +225,15 @@ class _PomodoroPageState extends State<PomodoroPage> {
                 children: [
                   IconButton(
                     tooltip: 'Decrease duration by one minute',
-                    onPressed:
-                        !_isRunning && _durationMinutes > _minDurationMinutes
-                        ? () => _changeDuration(-1)
+                    onPressed: controller.canDecreaseDuration
+                        ? () => controller.changeDuration(-1)
                         : null,
                     icon: const Icon(Icons.remove_circle_outline),
                   ),
                   SizedBox(
                     width: 112,
                     child: Text(
-                      '$_durationMinutes min',
+                      '${controller.durationMinutes} min',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
@@ -189,9 +244,8 @@ class _PomodoroPageState extends State<PomodoroPage> {
                   ),
                   IconButton(
                     tooltip: 'Increase duration by one minute',
-                    onPressed:
-                        !_isRunning && _durationMinutes < _maxDurationMinutes
-                        ? () => _changeDuration(1)
+                    onPressed: controller.canIncreaseDuration
+                        ? () => controller.changeDuration(1)
                         : null,
                     icon: const Icon(Icons.add_circle_outline),
                   ),
@@ -201,9 +255,9 @@ class _PomodoroPageState extends State<PomodoroPage> {
               CircularPercentIndicator(
                 radius: 120.0,
                 lineWidth: 12.0,
-                percent: _secondsRemaining / _durationSeconds,
+                percent: controller.progress,
                 center: Text(
-                  _timeString,
+                  controller.timeString,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 40,
@@ -220,14 +274,17 @@ class _PomodoroPageState extends State<PomodoroPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
+                    tooltip: controller.isRunning ? 'Pause timer' : 'Start timer',
                     iconSize: 48,
                     icon: Icon(
-                      _isRunning
+                      controller.isRunning
                           ? Icons.pause_circle_filled
                           : Icons.play_circle_fill,
                       color: GlassTheme.accentNeon,
                     ),
-                    onPressed: _isRunning ? _pauseTimer : _startTimer,
+                    onPressed: controller.isRunning
+                        ? controller.pause
+                        : controller.start,
                   ),
                   const SizedBox(width: 20),
                   IconButton(
@@ -236,14 +293,14 @@ class _PomodoroPageState extends State<PomodoroPage> {
                       Icons.replay,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    onPressed: _resetTimer,
+                    onPressed: controller.reset,
                   ),
                 ],
               ),
-              if (_isAlarmPlaying) ...[
+              if (controller.isAlarmPlaying) ...[
                 const SizedBox(height: 20),
                 FilledButton.icon(
-                  onPressed: _stopAlarm,
+                  onPressed: controller.stopAlarm,
                   icon: const Icon(Icons.stop),
                   label: const Text('Stop alarm'),
                 ),
