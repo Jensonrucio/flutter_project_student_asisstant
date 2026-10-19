@@ -89,10 +89,10 @@ class _LoginPageState extends State<LoginPage> {
                             ? 'Reset your password'
                             : _isRegistering
                             ? 'Create your account'
-                            : 'Welcome back',
+                            : 'Welcome To Study Buddy',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 27,
+                          fontSize: 25,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -102,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
                             ? 'We’ll email you a secure link to choose a new password.'
                             : _isRegistering
                             ? 'Start organizing your study time.'
-                            : 'Sign in to continue to your study space.',
+                            : 'Sign in to continue your study space.',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                           height: 1.45,

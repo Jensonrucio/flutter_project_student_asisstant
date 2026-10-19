@@ -474,8 +474,8 @@ class _MinimizedPomodoroBanner extends StatelessWidget {
                             isAlarmPlaying
                                 ? 'Focus session complete'
                                 : controller.isRunning
-                                ? 'Pomodoro running'
-                                : 'Pomodoro paused',
+                                ? 'Streak Buddy running'
+                                : 'Streak Buddy paused',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
