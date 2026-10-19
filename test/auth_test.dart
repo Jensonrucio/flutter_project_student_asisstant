@@ -82,11 +82,15 @@ void main() {
         home: LoginPage(authApi: authApi, onAuthenticated: (_) {}),
       ),
     );
-    await tester.tap(find.text('Sign in'));
+    expect(find.text('Welcome Back!'), findsOneWidget);
+    expect(find.text('Sign in to continue your journey'), findsOneWidget);
+    expect(find.text('Login'), findsOneWidget);
+    expect(find.text('Sign Up'), findsOneWidget);
+    await tester.tap(find.text('Login'));
     await tester.pump();
 
-    expect(find.text('Enter your email'), findsOneWidget);
-    expect(find.text('Enter your password'), findsOneWidget);
+    expect(find.text('Email is required'), findsOneWidget);
+    expect(find.text('Password is required'), findsOneWidget);
     expect(requestCount, 0);
     client.close();
   });
@@ -113,7 +117,7 @@ void main() {
           home: LoginPage(authApi: authApi, onAuthenticated: (_) {}),
         ),
       );
-      await tester.tap(find.text('Forgot password?'));
+      await tester.tap(find.text('Forgot Password?'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byType(TextFormField).first,
@@ -129,7 +133,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Back to sign in'), findsOneWidget);
+      expect(find.text('Sign In'), findsOneWidget);
       client.close();
     },
   );
