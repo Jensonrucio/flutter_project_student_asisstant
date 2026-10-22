@@ -4,10 +4,20 @@ declare(strict_types=1);
 
 function require_auth_user(PDO $pdo): array
 {
-  $headers = function_exists('getallheaders') ? getallheaders() : [];
-  $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? $headers['Authorization'] ?? '';
+  $authorization = trim((string)($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+  if ($authorization === '') {
+    $authorization = trim((string)($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''));
+  }
+  if ($authorization === '' && function_exists('getallheaders')) {
+    foreach (getallheaders() as $name => $value) {
+      if (strcasecmp((string)$name, 'Authorization') === 0) {
+        $authorization = trim((string)$value);
+        break;
+      }
+    }
+  }
 
-  if (!preg_match('/\ABearer ([a-f0-9]{64})\z/i', trim($authorization), $matches)) {
+  if (!preg_match('/\ABearer ([a-f0-9]{64})\z/i', $authorization, $matches)) {
     api_json_response(['error' => 'Authentication is required.'], 401);
   }
 

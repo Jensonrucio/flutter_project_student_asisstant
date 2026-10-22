@@ -78,6 +78,15 @@ class PomodoroTimerController extends ChangeNotifier {
     _isAlarmPlaying = true;
     notifyListeners();
     try {
+      await _completionPlayer.setAudioContext(
+        AudioContext(
+          android: const AudioContextAndroid(
+            contentType: AndroidContentType.sonification,
+            usageType: AndroidUsageType.alarm,
+            audioFocus: AndroidAudioFocus.gainTransient,
+          ),
+        ),
+      );
       await _completionPlayer.setReleaseMode(ReleaseMode.loop);
       if (_disposed || !_isAlarmPlaying) return;
       await _completionPlayer.play(AssetSource('audio/pomodoro_complete.wav'));
@@ -274,7 +283,9 @@ class PomodoroPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    tooltip: controller.isRunning ? 'Pause timer' : 'Start timer',
+                    tooltip: controller.isRunning
+                        ? 'Pause timer'
+                        : 'Start timer',
                     iconSize: 48,
                     icon: Icon(
                       controller.isRunning
