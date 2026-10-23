@@ -3,7 +3,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class GlassTheme {
-  static const Color primaryDark = Color(0xFF0B1220);
+  static const Color primaryDark = Color(0xFF04132C);
+  static const Color surfaceDark = Color(0xFF334155);
   static const Color accentNeon = Color(0xFF818CF8);
   static const Color cyanAccent = Color(0xFF2DD4BF);
 
@@ -21,7 +22,7 @@ class GlassTheme {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return BoxDecoration(
-      color: (isDark ? const Color(0xFF142033) : Colors.white)
+      color: (isDark ? surfaceDark : Colors.white)
           .withValues(alpha: 0.96),
       borderRadius: BorderRadius.circular(borderRadius),
       border: Border.all(

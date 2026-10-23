@@ -26,6 +26,7 @@ class _QuizChatPageState extends State<QuizChatPage> {
   static const List<int> _questionCountOptions = [5, 10, 15, 20];
 
   final TextEditingController _notesController = TextEditingController();
+  final GlobalKey _firstQuestionKey = GlobalKey();
   final AiQuizApi _aiQuizApi = AiQuizApi();
   final StudyNotesExtractor _notesExtractor = const StudyNotesExtractor();
   bool _isLoadingFile = false;
@@ -203,6 +204,16 @@ class _QuizChatPageState extends State<QuizChatPage> {
       _selectedAnswers.clear();
       _quizSubmitted = false;
       _score = 0;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final firstQuestionContext = _firstQuestionKey.currentContext;
+      if (mounted && firstQuestionContext != null) {
+        Scrollable.ensureVisible(
+          firstQuestionContext,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
@@ -432,7 +443,13 @@ class _QuizChatPageState extends State<QuizChatPage> {
               ),
             ),
             const SizedBox(height: 12),
-            ...List.generate(_quizQuestions.length, _buildQuestionCard),
+            ...List.generate(
+              _quizQuestions.length,
+              (index) => _buildQuestionCard(
+                index,
+                key: index == 0 ? _firstQuestionKey : null,
+              ),
+            ),
             if (_quizSubmitted) _buildScoreCard(),
             const SizedBox(height: 4),
             SizedBox(
@@ -481,13 +498,14 @@ class _QuizChatPageState extends State<QuizChatPage> {
     );
   }
 
-  Widget _buildQuestionCard(int questionIndex) {
+  Widget _buildQuestionCard(int questionIndex, {Key? key}) {
     final question = _quizQuestions[questionIndex];
     final correctIndex = question['correct_index'] as int;
     final selectedIndex = _selectedAnswers[questionIndex];
     final options = question['options'] as List<String>;
 
     return Padding(
+      key: key,
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassTheme.glassContainer(
         context: context,

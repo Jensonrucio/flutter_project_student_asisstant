@@ -55,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       backgroundColor: isDark
-          ? const Color.fromARGB(255, 4, 19, 44)
+          ? GlassTheme.primaryDark
           : GlassTheme.background(context),
       body: SafeArea(
         child: Center(
@@ -132,17 +132,13 @@ class _LoginPageState extends State<LoginPage> {
                           ? 'Start organizing your study time.'
                           : 'Sign in to track your study journey',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: mutedTextColor,
-                        fontSize: 12,
-                        height: 1.45,
-                      ),
+                      style: TextStyle(color: mutedTextColor),
                     ),
                     const SizedBox(height: 26),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF334155) : Colors.white,
+                        color: isDark ? GlassTheme.surfaceDark : Colors.white,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                           color:

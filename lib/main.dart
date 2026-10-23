@@ -67,7 +67,7 @@ class _StudentAssistantAppState extends State<StudentAssistantApp> {
     ).copyWith(
       primary: isDark ? GlassTheme.cyanAccent : const Color(0xFF087F73),
       secondary: GlassTheme.accentNeon,
-      surface: isDark ? const Color(0xFF142033) : Colors.white,
+      surface: isDark ? GlassTheme.surfaceDark : Colors.white,
     );
     return ThemeData(
       useMaterial3: true,
