@@ -55,3 +55,4 @@ function api_json_response(array $payload, int $status = 200): never
   echo json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
   exit;
 }
+

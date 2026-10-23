@@ -14,7 +14,7 @@ class ApiConstants {
     }
 
     if (kIsWeb) {
-      return 'http://localhost/student_api';
+      return 'https://demo-herbal-basic-simpson.trycloudflare.com/student_api';
     }
 
     // Android emulator uses 10.0.2.2. Physical devices need a LAN IP like
