@@ -14,7 +14,7 @@ class ApiConstants {
     }
 
     if (kIsWeb) {
-      return 'https://demo-herbal-basic-simpson.trycloudflare.com/student_api';
+      return 'https://terminology-nearest-rio-prospect.trycloudflare.com/student_api';
     }
 
     // Android emulator uses 10.0.2.2. Physical devices need a LAN IP like
